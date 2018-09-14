@@ -9,7 +9,7 @@ from caching.cache import _type_name, _function_name, _type_names, make_key
 
 @pytest.fixture(params=[False, True], ids=['memory', 'file'])
 def cache(tmpdir, request):
-    filepath = request.param and f'{tmpdir}/cache' or None
+    filepath = request.param and '{tmpdir}/cache'.format(tmpdir=tmpdir) or None
     with Cache(filepath=filepath) as c:
         yield c
 
@@ -18,7 +18,7 @@ def test_repr():
     c = Cache(maxsize=1, ttl=1, filepath=None, policy='FIFO', only_on_errors=False, x='y')
     expected = (
         "Cache(maxsize=1, ttl=1, filepath=None, policy='FIFO', "
-        f"key={make_key}, only_on_errors=False, x='y')"
+        "key={make_key}, only_on_errors=False, x='y')".format(make_key=make_key)
     )
     assert repr(c) == expected
 
@@ -38,7 +38,7 @@ keys_and_values = [
     ({'b', 'c'}, (1, 'z')),
 ]
 test_names = [
-    None if len(str((k, v))) < 30 else f'{str(k)[:10]}_{str(v)[:10]}'
+    None if len(str((k, v))) < 30 else "_".join((str(k)[:10], str(v)[:10]))
     for k, v in keys_and_values
 ]
 
@@ -172,7 +172,7 @@ def test_raises_if_closed(cache):
 def test_remove(tmpdir, cache):
     tmpdir = str(tmpdir)
     cache.remove()
-    filepath = f'{tmpdir}/cache'
+    filepath = '{tmpdir}/cache'.format(tmpdir=tmpdir)
     cache = Cache(filepath=filepath)
     assert os.path.isfile(filepath)
     assert os.listdir(tmpdir) == ['cache']
@@ -250,8 +250,8 @@ def test__type_names():
 
 @pytest.mark.parametrize(
     'obj, expected', [
-        (lambda: 1, f'{__name__}.<lambda>'),
-        (cache, f'{__name__}.cache'),
+        (lambda: 1, '{__name__}.<lambda>'.format(__name__=__name__)),
+        (cache, '{__name__}.cache'.format(__name__=__name__)),
     ],
 )
 def test__function_name(obj, expected):
@@ -274,7 +274,7 @@ def test_items(cache):
 
 @pytest.mark.parametrize('storage', ['file', 'memory'])
 def test_lru(tmpdir, storage):
-    filepath = None if storage == 'memory' else f'{tmpdir}/cache'
+    filepath = None if storage == 'memory' else '{tmpdir}/cache'.format(tmpdir=tmpdir)
     cache = Cache(filepath=filepath, maxsize=2, ttl=-1, policy='LRU')
 
     @cache
@@ -300,7 +300,7 @@ def test_lru(tmpdir, storage):
 
 @pytest.mark.parametrize('storage', ['file', 'memory'])
 def test_lfu(tmpdir, storage):
-    filepath = None if storage == 'memory' else f'{tmpdir}/cache'
+    filepath = None if storage == 'memory' else '{tmpdir}/cache'.format(tmpdir=tmpdir)
     cache = Cache(filepath=filepath, maxsize=2, ttl=-1, policy='LFU')
 
     @cache

@@ -23,11 +23,11 @@ def _type_names(args, kwargs):
 
 def _type_name(obj):
     klass = type(obj)
-    return f'{klass.__module__}.{klass.__qualname__}'
+    return '{klass.__module__}.{klass.__qualname__}'.format(klass=klass)
 
 
 def _function_name(fn):
-    return f'{fn.__module__}.{fn.__qualname__}'
+    return '{fn.__module__}.{fn.__qualname__}'.format(fn=fn)
 
 
 class Cache:
@@ -85,13 +85,14 @@ class Cache:
 
     def __repr__(self):
         return (
-            f"{self.__class__.__name__}"
-            f"({', '.join(f'{k}={repr(v)}' for k,v in self.params.items())})"
+            "{self.__class__.__name__}".format(self=self) +
+            "({})".format(', '.join(
+                '{k}={v}'.format(k=k, v=repr(v)) for k,v in self.params.items()))
         )
 
     def _decorator(self, fn):
         if not callable(fn):
-            raise TypeError(f'{fn} is not callable')
+            raise TypeError('{fn} is not callable'.format(fn=fn))
 
         key_prefix = _function_name(fn)
         make_key_ = self.make_key

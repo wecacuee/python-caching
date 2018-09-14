@@ -8,7 +8,7 @@ from caching import SQLiteStorage
 
 @pytest.fixture
 def storage(tmpdir):
-    filepath = f'{tmpdir}/cache'
+    filepath = '{tmpdir}/cache'.format(tmpdir=tmpdir)
     with SQLiteStorage(
         filepath=filepath,
         ttl=60,
@@ -19,9 +19,9 @@ def storage(tmpdir):
 
 
 def test_repr(tmpdir):
-    filepath = f'{tmpdir}/cache'
+    filepath = '{tmpdir}/cache'.format(tmpdir=tmpdir)
     storage = SQLiteStorage(maxsize=1, ttl=1, filepath=filepath)
-    expected = f"SQLiteStorage(filepath='{filepath}', maxsize=1, ttl=1)"
+    expected = "SQLiteStorage(filepath='{filepath}', maxsize=1, ttl=1)".format(filepath=filepath)
     assert repr(storage) == expected
 
 
@@ -46,7 +46,7 @@ def test_set_get(storage):
 
 def test_ttl_gt0(tmpdir):
     storage = SQLiteStorage(
-        filepath=f'{tmpdir}/cache',
+        filepath='{tmpdir}/cache'.format(tmpdir=tmpdir),
         ttl=0.001,
         maxsize=100,
     )
@@ -55,7 +55,7 @@ def test_ttl_gt0(tmpdir):
     assert storage.get(b'1') is None
 
     storage = SQLiteStorage(
-        filepath=f'{tmpdir}/cache',
+        filepath='{tmpdir}/cache'.format(tmpdir=tmpdir),
         ttl=99,
         maxsize=100,
     )
@@ -66,7 +66,7 @@ def test_ttl_gt0(tmpdir):
 @pytest.mark.parametrize('ttl', (0, -1, -100, -0.5, -1.5))
 def test_ttl_lte0(tmpdir, ttl):
     with SQLiteStorage(
-        filepath=f'{tmpdir}/cache',
+        filepath='{tmpdir}/cache'.format(tmpdir=tmpdir),
         ttl=ttl,
         maxsize=100,
     ) as storage:
@@ -74,7 +74,7 @@ def test_ttl_lte0(tmpdir, ttl):
         assert storage.get(b'1') == b'one'
 
         with storage.db as db:
-            db.execute(f'UPDATE cache SET ts = ts - {ttl + 10}')
+            db.execute('UPDATE cache SET ts = ts - {ttlp10}'.format(ttlp10=ttl + 10))
 
         storage[b'x'] = b'x'
         assert storage.get(b'1') == b'one'
@@ -82,7 +82,7 @@ def test_ttl_lte0(tmpdir, ttl):
 
 def test_maxsize(tmpdir):
     with SQLiteStorage(
-        filepath=f'{tmpdir}/cache',
+        filepath='{tmpdir}/cache'.format(tmpdir=tmpdir),
         ttl=-1,
         maxsize=2,
     ) as storage:
@@ -122,7 +122,7 @@ def test_clear(storage):
 def test_remove(tmpdir):
     tmpdir = str(tmpdir)
     assert os.listdir(tmpdir) == []
-    filepath = f'{tmpdir}/cache'
+    filepath = '{tmpdir}/cache'.format(tmpdir=tmpdir)
     storage = SQLiteStorage(filepath=filepath, ttl=-1, maxsize=10)
     assert os.path.isfile(filepath)
     assert os.listdir(tmpdir) == ['cache']
@@ -150,10 +150,10 @@ def ensure_index(db, table_name, columns, unique):
     columns = ', '.join(columns)
     unique = 'UNIQUE' if unique else ''
     query = (
-        f'SELECT * FROM SQLITE_MASTER '
-        f"WHERE TYPE = 'index' AND tbl_name = '{table_name}'"
-        f" AND sql LIKE '%{unique} INDEX % ON {table_name} ({columns})'"
-    )
+        'SELECT * FROM SQLITE_MASTER '
+        "WHERE TYPE = 'index' AND tbl_name = '{table_name}'"
+        " AND sql LIKE '%{unique} INDEX % ON {table_name} ({columns})'"
+    ).format(unique=unique, table_name=table_name, columns=columns)
     rows = db.execute(query).fetchall()
     assert len(rows) == 1
 

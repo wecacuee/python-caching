@@ -58,7 +58,7 @@ class SQLiteStorage(CacheStorageBase):
 
     def __init__(self, *, filepath, ttl, maxsize, policy='FIFO'):
         if policy not in self.POLICIES:
-            raise ValueError(f'Invalid policy: {policy}')
+            raise ValueError('Invalid policy: {policy}'.format(policy=policy))
         super(SQLiteStorage, self).__init__(
             ttl=ttl, maxsize=maxsize, policy=policy,
         )
@@ -68,19 +68,22 @@ class SQLiteStorage(CacheStorageBase):
         self.nothing = object()
 
         if self.ttl > 0:
-            ttl_filter = f'({self.SQLITE_TIMESTAMP} - ts) <= {self.ttl}'
+            ttl_filter = '({self.SQLITE_TIMESTAMP} - ts) <= {self.ttl}'.format(self=self)
         else:
             ttl_filter = '1=1'
 
-        self.sql_select = f'SELECT value FROM cache WHERE key = ? AND {ttl_filter}'
-        self.sql_select_kv = f'SELECT key, value FROM cache WHERE {ttl_filter} ORDER BY ts'
+        self.sql_select = 'SELECT value FROM cache WHERE key = ? AND {ttl_filter}'.format(
+            ttl_filter=ttl_filter)
+        self.sql_select_kv = 'SELECT key, value FROM cache WHERE {ttl_filter} ORDER BY ts'.format(
+            ttl_filter=ttl_filter)
         self.sql_delete = 'DELETE FROM cache WHERE key = ?'
         self.sql_insert = (
             'INSERT OR REPLACE INTO cache (key, value) VALUES (?, ?)'
         )
         after_get_ok = self.POLICIES[self.policy]['after_get_ok']
         if after_get_ok:
-            self.sql_after_get_ok = f'{after_get_ok} WHERE key = ?'
+            self.sql_after_get_ok = '{after_get_ok} WHERE key = ?'.format(
+                after_get_ok=after_get_ok)
         else:
             self.sql_after_get_ok = None
 
@@ -93,8 +96,9 @@ class SQLiteStorage(CacheStorageBase):
             for p in ('filepath', 'maxsize', 'ttl')
         )
         return (
-            f'{self.__class__.__name__}'
-            f"({', '.join(f'{k}={repr(v)}' for k,v in params)})"
+            '{self.__class__.__name__}'.format(self=self) +
+            "({})".format(', '.join(
+                '{k}={v}'.format(k=k, v=repr(v)) for k,v in params))
         )
 
     def __enter__(self):
@@ -138,32 +142,36 @@ class SQLiteStorage(CacheStorageBase):
 
         after_insert_actions = []
         if self.ttl > 0:
-            after_insert_actions.append(f'''
+            after_insert_actions.append('''
                 DELETE FROM cache WHERE
                 ({self.SQLITE_TIMESTAMP} - ts) > {self.ttl};
-            ''')
+            '''.format(self=self))
         if self.maxsize > 0:
-            after_insert_actions.append(f'''
+            after_insert_actions.append('''
                 DELETE FROM cache WHERE key in (
                     SELECT key FROM cache
-                    ORDER BY {policy_stuff['delete_order_by']}
+                    ORDER BY {policy_stuff[delete_order_by]}
                     LIMIT max(0, (SELECT COUNT(key) FROM cache) - {self.maxsize})
                 );
-            ''')
+            '''.format(self=self, policy_stuff=policy_stuff))
 
         with self.db as db:
-            db.execute(f'''
+            db.execute('''
                 CREATE TABLE IF NOT EXISTS cache (
                     key BINARY PRIMARY KEY,
                     ts REAL NOT NULL DEFAULT ({self.SQLITE_TIMESTAMP}),
-                    {''.join(f"{c}, " for c in policy_stuff['additional_columns'])}
+                    {x}
                     value BLOB NOT NULL
                 ) WITHOUT ROWID
-            ''')
+            '''.format(self=self,
+                       x=''.join(
+                           "{c}, ".format(c=c) for c in policy_stuff['additional_columns'])))
             db.execute('CREATE INDEX IF NOT EXISTS i_cache_ts ON cache (ts)')
 
             for i, columns in enumerate(policy_stuff['additional_indexes']):
-                db.execute(f'CREATE INDEX IF NOT EXISTS i_cache_{i} ON cache ({columns})')
+                db.execute(
+                    'CREATE INDEX IF NOT EXISTS i_cache_{i} ON cache ({columns})'.format(
+                        i=i, columns=columns))
 
             if after_insert_actions:
                 db.execute('''
